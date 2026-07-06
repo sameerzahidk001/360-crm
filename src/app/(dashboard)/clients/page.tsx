@@ -6,10 +6,11 @@ import { PageHeader } from "@/components/ui/kpi-card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
-import { clients } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
 import type { Client } from "@/types";
 
 export default function ClientsPage() {
+  const clients = useCrmDataStore((s) => s.clients);
   const columns = [
     { key: "companyName", header: "Company", render: (c: Client) => <div><p className="font-medium">{c.companyName}</p><p className="text-xs text-text-secondary">{c.name}</p></div> },
     { key: "email", header: "Email" },

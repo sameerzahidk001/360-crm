@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
-import { employees } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
 import { formatDate } from "@/lib/utils";
 import type { Employee } from "@/types";
 
 export default function EmployeesPage() {
+  const employees = useCrmDataStore((s) => s.employees);
   const columns = [
     {
       key: "name",

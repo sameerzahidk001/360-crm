@@ -6,10 +6,12 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { clients, projects } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
 
 export default function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const clients = useCrmDataStore((s) => s.clients);
+  const projects = useCrmDataStore((s) => s.projects);
   const client = clients.find((c) => c.id === id);
   const clientProjects = projects.filter((p) => p.clientId === id);
 

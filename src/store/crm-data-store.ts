@@ -5,6 +5,8 @@ import type {
   Department,
   Team,
   Project,
+  Employee,
+  Client,
   ProjectStatus,
   ProjectPriority,
   AnnouncementPriority,
@@ -18,6 +20,8 @@ import {
   supportRequests as initialSupport,
   platformCompanies as initialCompanies,
   projects as initialProjects,
+  employees as initialEmployees,
+  clients as initialClients,
 } from "@/data/mock";
 
 export interface ClientFeedbackItem {
@@ -56,6 +60,8 @@ interface CrmDataState {
   supportRequests: SupportRequestItem[];
   platformCompanies: PlatformCompany[];
   projects: Project[];
+  employees: Employee[];
+  clients: Client[];
   addAnnouncement: (data: Omit<Announcement, "id">) => void;
   addDailyReport: (data: Omit<DailyReport, "id">) => void;
   addTeam: (data: Omit<Team, "id">) => void;
@@ -65,6 +71,8 @@ interface CrmDataState {
   addCompany: (data: Omit<PlatformCompany, "id">) => void;
   updateProject: (id: string, data: Partial<Project>) => void;
   addProject: (data: Omit<Project, "id">) => void;
+  addEmployee: (data: Omit<Employee, "id" | "employeeId"> & { employeeId?: string }) => Employee;
+  addClient: (data: Omit<Client, "id">) => Client;
 }
 
 export const useCrmDataStore = create<CrmDataState>((set) => ({
@@ -76,6 +84,8 @@ export const useCrmDataStore = create<CrmDataState>((set) => ({
   supportRequests: initialSupport,
   platformCompanies: initialCompanies,
   projects: initialProjects,
+  employees: initialEmployees,
+  clients: initialClients,
 
   addAnnouncement: (data) =>
     set((s) => ({
@@ -121,6 +131,20 @@ export const useCrmDataStore = create<CrmDataState>((set) => ({
     set((s) => ({
       projects: [{ ...data, id: `p-${Date.now()}` }, ...s.projects],
     })),
+
+  addEmployee: (data) => {
+    const id = `e-${Date.now()}`;
+    const employeeId = data.employeeId ?? `EMP-${String(Date.now()).slice(-4)}`;
+    const employee: Employee = { ...data, id, employeeId };
+    set((s) => ({ employees: [employee, ...s.employees] }));
+    return employee;
+  },
+
+  addClient: (data) => {
+    const client: Client = { ...data, id: `c-${Date.now()}` };
+    set((s) => ({ clients: [client, ...s.clients] }));
+    return client;
+  },
 }));
 
 export type { ProjectStatus, ProjectPriority, AnnouncementPriority };

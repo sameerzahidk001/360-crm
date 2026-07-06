@@ -10,12 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { useCrmDataStore } from "@/store/crm-data-store";
 import { useAppStore } from "@/store/app-store";
-import { clients, departments, teams, employees } from "@/data/mock";
+import { employees } from "@/data/mock";
 
 export default function CreateProjectPage() {
   const router = useRouter();
   const addToast = useAppStore((s) => s.addToast);
   const addProject = useCrmDataStore((s) => s.addProject);
+  const { clients, departments, teams } = useCrmDataStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [clientId, setClientId] = useState("");

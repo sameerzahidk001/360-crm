@@ -8,11 +8,16 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { TaskCard } from "@/components/tasks/task-card";
-import { employees, tasks, projects, leaveRequests } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
+import { useTaskStore } from "@/store/task-store";
+import { leaveRequests } from "@/data/mock";
 import { formatDate } from "@/lib/utils";
 
 export default function EmployeeProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const employees = useCrmDataStore((s) => s.employees);
+  const projects = useCrmDataStore((s) => s.projects);
+  const tasks = useTaskStore((s) => s.tasks);
   const employee = employees.find((e) => e.id === id);
 
   if (!employee) return <div className="text-center py-20 text-text-secondary">Employee not found</div>;
