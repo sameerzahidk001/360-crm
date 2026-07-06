@@ -49,6 +49,7 @@ export const navigation: NavItem[] = [
     ],
   },
   { label: "Documents", href: "/documents", icon: "FileStack" },
+  { label: "Discussions", href: "/discussions", icon: "MessagesSquare" },
   { label: "Announcements", href: "/announcements", icon: "Megaphone" },
   { label: "Notifications", href: "/notifications", icon: "Bell" },
   { label: "Time Tracking", href: "/time-tracking", icon: "Timer" },
@@ -71,6 +72,7 @@ export const hrNav: NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: "Clock" },
   { label: "Leave Requests", href: "/leave", icon: "Palmtree" },
   { label: "Daily Reports", href: "/daily-reports", icon: "FileText" },
+  { label: "Discussions", href: "/discussions", icon: "MessagesSquare" },
   { label: "Announcements", href: "/announcements", icon: "Megaphone" },
   { label: "Documents", href: "/documents", icon: "FileStack" },
   { label: "Reports", href: "/reports", icon: "PieChart" },
@@ -81,6 +83,7 @@ export const clientNav: NavItem[] = [
   { label: "My Projects", href: "/client/projects", icon: "FolderOpen" },
   { label: "Milestones", href: "/client/milestones", icon: "CheckSquare" },
   { label: "Files", href: "/client/files", icon: "FileStack" },
+  { label: "Discussions", href: "/discussions", icon: "MessagesSquare" },
   { label: "Feedback", href: "/client/feedback", icon: "MessageSquare" },
   { label: "Support", href: "/client/support", icon: "Headphones" },
 ];

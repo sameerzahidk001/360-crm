@@ -1,0 +1,526 @@
+/**
+ * Generates 360 WorkFlow sales/project documentation PDF
+ * Run: node scripts/generate-sales-pdf.mjs
+ * Requires: dev server on http://localhost:3000
+ */
+
+import puppeteer from "puppeteer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(__dirname, "..");
+const IMG_DIR = path.join(ROOT, "docs", "images");
+const OUT_PDF = path.join(ROOT, "docs", "360-WorkFlow-Project-Document.pdf");
+
+const BASE = "http://localhost:3000";
+
+const SCREENSHOTS = [
+  { key: "login", url: "/login", role: null, wait: 800 },
+  { key: "dashboard", url: "/dashboard", role: "Company Admin", wait: 2000 },
+  { key: "tasks", url: "/tasks", role: "Company Admin", wait: 1500 },
+  { key: "my-work", url: "/my-work", role: "Employee", wait: 1500 },
+  { key: "employees", url: "/employees", role: "Company Admin", wait: 1500 },
+  { key: "attendance", url: "/attendance", role: "HR", wait: 1500 },
+  { key: "leave", url: "/leave", role: "HR", wait: 1500 },
+  { key: "time-tracking", url: "/time-tracking", role: "Employee", wait: 1500 },
+  { key: "super-admin", url: "/super-admin", role: "Super Admin", wait: 1500 },
+  { key: "client", url: "/client", role: "Client", wait: 1500 },
+];
+
+async function loginAs(page, roleLabel) {
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle0", timeout: 30000 });
+  await page.evaluate((label) => {
+    const btn = [...document.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes(label)
+    );
+    btn?.click();
+  }, roleLabel);
+  await new Promise((r) => setTimeout(r, 1200));
+}
+
+async function captureScreenshots(browser) {
+  fs.mkdirSync(IMG_DIR, { recursive: true });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+
+  let currentRole = null;
+
+  for (const shot of SCREENSHOTS) {
+    try {
+      if (shot.role && shot.role !== currentRole) {
+        await loginAs(page, shot.role);
+        currentRole = shot.role;
+      } else if (!shot.role) {
+        await page.goto(`${BASE}${shot.url}`, { waitUntil: "networkidle0", timeout: 30000 });
+      }
+
+      if (shot.role && shot.url !== "/login") {
+        await page.goto(`${BASE}${shot.url}`, { waitUntil: "networkidle0", timeout: 30000 });
+      }
+
+      await new Promise((r) => setTimeout(r, shot.wait));
+      await page.screenshot({
+        path: path.join(IMG_DIR, `${shot.key}.png`),
+        type: "png",
+        fullPage: false,
+      });
+      console.log(`✓ Screenshot: ${shot.key}`);
+    } catch (e) {
+      console.warn(`⚠ Skipped ${shot.key}:`, e.message);
+    }
+  }
+  await page.close();
+}
+
+function imgTag(name) {
+  const p = path.join(IMG_DIR, `${name}.png`);
+  if (!fs.existsSync(p)) return "";
+  const rel = path.relative(path.join(ROOT, "docs"), p).replace(/\\/g, "/");
+  return rel;
+}
+
+function buildHtml() {
+  const images = {
+    login: imgTag("login"),
+    dashboard: imgTag("dashboard"),
+    tasks: imgTag("tasks"),
+    myWork: imgTag("my-work"),
+    employees: imgTag("employees"),
+    attendance: imgTag("attendance"),
+    leave: imgTag("leave"),
+    timeTracking: imgTag("time-tracking"),
+    superAdmin: imgTag("super-admin"),
+    client: imgTag("client"),
+  };
+
+  const shot = (src, alt) => src ? `<div class="module-shot"><img src="${src}" alt="${alt}"/></div>` : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .page {
+    width: 210mm; min-height: 297mm; max-height: 297mm;
+    overflow: hidden; position: relative;
+    page-break-after: always; break-after: page;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* Cover */
+  .cover {
+    background: #000; color: #fff; display: flex; flex-direction: column;
+    justify-content: center; padding: 50px 55px; height: 297mm;
+  }
+  .cover .logo { width: 64px; height: 64px; background: #fff; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 22px; color: #000; margin-bottom: 28px; }
+  .cover .brand { font-size: 14px; color: #F58220; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  .cover h1 { font-size: 46px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+  .cover h1 span { color: #F58220; }
+  .cover .sub { font-size: 18px; color: rgba(255,255,255,0.65); line-height: 1.6; max-width: 480px; margin-bottom: 40px; }
+  .cover .meta { display: flex; gap: 40px; margin-top: auto; }
+  .cover .meta div { border-left: 3px solid #F58220; padding-left: 14px; }
+  .cover .meta strong { display: block; font-size: 22px; color: #F58220; }
+  .cover .meta span { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+  .cover .footer { margin-top: 30px; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* Inner pages */
+  .inner { padding: 36px 42px; height: 297mm; background: #fff; }
+  .page-header { border-bottom: 3px solid #F58220; padding-bottom: 12px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .page-header h2 { font-size: 26px; font-weight: 800; color: #000; }
+  .page-header .tag { font-size: 10px; color: #F58220; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .page-num { font-size: 10px; color: #999; }
+
+  h3 { font-size: 15px; font-weight: 700; color: #F58220; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  p, li { font-size: 11.5px; line-height: 1.65; color: #333; }
+  ul { padding-left: 18px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .card { background: #F8F8F8; border: 1px solid #E5E5E5; border-radius: 10px; padding: 14px; border-top: 3px solid #F58220; }
+  .card h4 { font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #000; }
+  .card p { font-size: 10.5px; color: #555; line-height: 1.5; }
+
+  .role-card { background: #000; color: #fff; border-radius: 10px; padding: 12px 14px; }
+  .role-card h4 { color: #F58220; font-size: 11px; margin-bottom: 4px; }
+  .role-card p { color: rgba(255,255,255,0.7); font-size: 9.5px; line-height: 1.45; }
+
+  .module-row { display: grid; grid-template-columns: 1fr 1.1fr; gap: 18px; align-items: start; margin-bottom: 14px; }
+  .module-shot { border-radius: 10px; border: 2px solid #E5E5E5; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+  .module-shot img { width: 100%; display: block; }
+  .module-info { padding-top: 4px; }
+  .module-info h4 { font-size: 14px; font-weight: 800; color: #000; margin-bottom: 6px; }
+  .module-info ul { margin: 0; }
+  .module-info li { font-size: 10.5px; }
+
+  .tech-tag { display: inline-block; background: #000; color: #F58220; font-size: 9.5px; font-weight: 600; padding: 4px 10px; border-radius: 20px; margin: 3px 3px 3px 0; }
+
+  .highlight-bar { background: #000; color: #fff; border-radius: 10px; padding: 16px 20px; margin: 14px 0; }
+  .highlight-bar p { color: rgba(255,255,255,0.85); font-size: 11px; }
+  .highlight-bar strong { color: #F58220; }
+
+  .contact-page { background: #000; color: #fff; height: 297mm; padding: 50px 55px; display: flex; flex-direction: column; justify-content: center; }
+  .contact-page h2 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+  .contact-page h2 span { color: #F58220; }
+  .contact-page .info { margin-top: 30px; }
+  .contact-page .info div { margin-bottom: 14px; font-size: 14px; }
+  .contact-page .info strong { color: #F58220; display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 3px; }
+  .cta { display: inline-block; background: #F58220; color: #fff; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-top: 30px; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: COVER -->
+<div class="page cover">
+  <div class="logo">360</div>
+  <div class="brand">360 Tech Solution</div>
+  <h1>360 <span>WorkFlow</span></h1>
+  <p class="sub">Complete Company Resource Management & Work Management Platform — Project Documentation for Sales & Deployment</p>
+  <div class="meta">
+    <div><strong>49+</strong><span>App Pages</span></div>
+    <div><strong>24</strong><span>Core Modules</span></div>
+    <div><strong>6</strong><span>User Panels</span></div>
+    <div><strong>100%</strong><span>Responsive</span></div>
+  </div>
+  <p class="footer">Confidential — Prepared by 360 Tech Solution | 360techsolution.com</p>
+</div>
+
+<!-- PAGE 2: OVERVIEW -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Project Overview</div><h2>Executive Summary</h2></div><span class="page-num">02</span></div>
+  <p><strong>360 WorkFlow</strong> is a modern, premium SaaS dashboard for IT companies, software houses, digital agencies, and medium-sized businesses. It combines project management, task tracking, HR, attendance, leave management, and team productivity into one simple, clean platform — inspired by ClickUp but easier to use.</p>
+  <div class="highlight-bar"><p><strong>Business Goal:</strong> Give management complete company visibility from one dashboard. Employees get a simple personal workspace. Managers see team workload instantly. HR handles attendance and leave. Clients get limited project access.</p></div>
+  <h3>Key Highlights</h3>
+  <div class="grid-2">
+    <div class="card"><h4>Simple & Clean UI</h4><p>Premium black + orange 360 Tech Solution branding. Modern cards, charts, Kanban board, responsive layout.</p></div>
+    <div class="card"><h4>Role-Based Access</h4><p>6 dedicated panels: Super Admin, Company Admin, Manager, Employee, HR, and Client portal.</p></div>
+    <div class="card"><h4>Work Management</h4><p>Projects, tasks (List, Kanban, Calendar), drag-and-drop, deadlines, priorities, comments, files.</p></div>
+    <div class="card"><h4>HR & Productivity</h4><p>Attendance, leave requests, daily work reports, time tracking with live timer, performance stats.</p></div>
+    <div class="card"><h4>SaaS Ready</h4><p>Super Admin panel for multi-company management, subscriptions, audit logs, platform settings.</p></div>
+    <div class="card"><h4>Scalable Architecture</h4><p>Next.js 16, TypeScript, REST API-ready mock data, modular structure for CRM, payroll, mobile apps.</p></div>
+  </div>
+  <h3>Workspace Structure</h3>
+  <p>Company Workspace → Department → Team → Project → Task (simple hierarchy, not overly complex)</p>
+</div>
+
+<!-- PAGE 3: USER ROLES -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Access Control</div><h2>User Roles & Panels</h2></div><span class="page-num">03</span></div>
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="role-card"><h4>Super Admin</h4><p>Global dashboard, manage companies, workspaces, users, subscriptions, audit logs, security, platform branding, backups.</p></div>
+    <div class="role-card"><h4>Company Admin</h4><p>Full company control: employees, departments, teams, clients, projects, tasks, attendance, leave, reports, settings.</p></div>
+    <div class="role-card"><h4>Manager / Team Lead</h4><p>Team projects, assign tasks, review work, approve leave, team workload, overdue tasks, department reports.</p></div>
+    <div class="role-card"><h4>Employee</h4><p>Personal dashboard, my tasks, update status, daily reports, check-in/out, leave requests, time tracking, announcements.</p></div>
+    <div class="role-card"><h4>HR</h4><p>Employee management, attendance, leave approval, holidays, onboarding, HR documents, attendance & leave reports.</p></div>
+    <div class="role-card"><h4>Client</h4><p>Project progress, milestones, approved tasks, files, feedback, support requests, project history.</p></div>
+  </div>
+  <h3>Permission Actions</h3>
+  <p>View · Create · Edit · Delete · Assign · Approve · Export — configurable per module via Roles & Permissions matrix.</p>
+  <h3>Demo Login Accounts</h3>
+  <div class="grid-2">
+    <div class="card"><h4>Company Admin</h4><p>sameer@360tech.com / password</p></div>
+    <div class="card"><h4>Manager</h4><p>ali@360tech.com / password</p></div>
+    <div class="card"><h4>Employee</h4><p>ahmed@360tech.com / password</p></div>
+    <div class="card"><h4>HR</h4><p>hr@360tech.com / password</p></div>
+    <div class="card"><h4>Super Admin</h4><p>admin@360workflow.com / password</p></div>
+    <div class="card"><h4>Client</h4><p>john@techcorp.com / password</p></div>
+  </div>
+</div>
+
+<!-- PAGE 4: AUTH + DASHBOARD -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Module Screenshots</div><h2>Authentication & Dashboard</h2></div><span class="page-num">04</span></div>
+  <div class="module-row">
+    <div class="module-info">
+      <h4>Module 1 — Authentication & Security</h4>
+      <ul>
+        <li>Login with role-based quick access</li>
+        <li>Forgot password & reset password</li>
+        <li>Email verification ready</li>
+        <li>Role-based access control (RBAC)</li>
+        <li>Module-based permissions</li>
+        <li>User status: active / inactive</li>
+        <li>Two-factor authentication ready</li>
+        <li>Login activity & audit logs</li>
+        <li>Session & device management</li>
+      </ul>
+    </div>
+    ${shot(images.login, "Login")}
+  </div>
+  <div class="module-row">
+    ${shot(images.dashboard, "Dashboard")}
+    <div class="module-info">
+      <h4>Module 2 — Main Dashboard</h4>
+      <ul>
+        <li>Role-specific dashboards (Admin, Manager, Employee, HR)</li>
+        <li>KPI cards: projects, tasks, employees, attendance</li>
+        <li>Charts: task completion, project progress, team workload</li>
+        <li>Widgets: my tasks, deadlines, activity, approvals</li>
+        <li>Quick actions: create project, task, employee, client</li>
+        <li>Date range filters & announcements</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 5: TASKS + MY WORK -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Work Management</div><h2>Tasks & My Work</h2></div><span class="page-num">05</span></div>
+  <div class="module-row">
+    <div class="module-info">
+      <h4>Module 9 — Task Management (Core)</h4>
+      <ul>
+        <li>Create, edit, delete, duplicate tasks</li>
+        <li>Assign / reassign employees</li>
+        <li>Priorities: Low, Normal, High, Urgent</li>
+        <li>Status: To Do, In Progress, In Review, Completed</li>
+        <li>Checklist, subtasks, comments, attachments</li>
+        <li>Task detail drawer with activity history</li>
+        <li><strong>Kanban board with drag & drop (Trello-style)</strong></li>
+        <li>List view & calendar view</li>
+      </ul>
+    </div>
+    ${shot(images.tasks, "Tasks Kanban")}
+  </div>
+  <div class="module-row">
+    ${shot(images.myWork, "My Work")}
+    <div class="module-info">
+      <h4>Module 11 — My Work (Employee)</h4>
+      <ul>
+        <li>Today, Upcoming, Overdue, In Progress sections</li>
+        <li>Quick task status update</li>
+        <li>Task cards with project, priority, due date</li>
+        <li>Quick actions: daily report, attendance, leave, timer</li>
+      </ul>
+      <h4>Module 8 — Project Management</h4>
+      <ul>
+        <li>Project cards with progress bar & team avatars</li>
+        <li>Auto progress from completed tasks</li>
+        <li>Client, department, team, manager assignment</li>
+        <li>Project detail: tasks, files, comments, timeline</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 6: COMPANY + HR -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Company & HR</div><h2>Employees & HR Modules</h2></div><span class="page-num">06</span></div>
+  <div class="module-row">
+    <div class="module-info">
+      <h4>Module 6 — Employee Management</h4>
+      <ul>
+        <li>Employee CRUD with profile pages</li>
+        <li>Department, team, designation, manager</li>
+        <li>Employment types & status tracking</li>
+        <li>Skills, documents, performance history</li>
+      </ul>
+      <h4>Modules 4–5 — Departments & Teams</h4>
+      <ul>
+        <li>Department heads, team leaders, workload view</li>
+        <li>Department & team performance reports</li>
+      </ul>
+    </div>
+    ${shot(images.employees, "Employees")}
+  </div>
+  <div class="grid-2">
+    ${shot(images.attendance, "Attendance")}
+    ${shot(images.leave, "Leave")}
+  </div>
+  <h3>Module 14 — Attendance | Module 15 — Leave Management</h3>
+  <div class="grid-2">
+    <ul><li>Check-in / check-out</li><li>Present, absent, late, WFH, half-day</li><li>Attendance history & reports</li><li>Today's attendance dashboard widget</li></ul>
+    <ul><li>Annual, sick, casual, emergency leave</li><li>Manager & HR approval workflow</li><li>Leave balance tracking</li><li>Pending approvals on dashboard</li></ul>
+  </div>
+</div>
+
+<!-- PAGE 7: TIME + REPORTS + MORE -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Productivity</div><h2>Time Tracking & Reports</h2></div><span class="page-num">07</span></div>
+  <div class="module-row">
+    ${shot(images.timeTracking, "Time Tracking")}
+    <div class="module-info">
+      <h4>Module 13 — Time Tracking</h4>
+      <ul>
+        <li>Live timer with start, pause, stop</li>
+        <li>Task-based time logging</li>
+        <li>Manual time entry</li>
+        <li>Work log history per employee</li>
+        <li>Project & daily hours reports</li>
+      </ul>
+      <h4>Module 12 — Daily Work Reports</h4>
+      <ul>
+        <li>Tasks worked, completed work, blockers</li>
+        <li>Manager review & feedback</li>
+        <li>Status: Submitted, Reviewed, Needs Update</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Additional Modules Included</h3>
+  <div class="grid-3">
+    <div class="card"><h4>Client Management</h4><p>Leads, active clients, account manager, project history, documents.</p></div>
+    <div class="card"><h4>Calendar</h4><p>Task deadlines, leaves, holidays, meetings. Month/week/day views.</p></div>
+    <div class="card"><h4>Announcements</h4><p>Company-wide or department announcements with priority levels.</p></div>
+    <div class="card"><h4>Documents</h4><p>Company, HR, project, client & employee file categories.</p></div>
+    <div class="card"><h4>Notifications</h4><p>In-app alerts for tasks, leave, deadlines, mentions, files.</p></div>
+    <div class="card"><h4>Activity Log</h4><p>Full audit trail of system actions with user & timestamp.</p></div>
+    <div class="card"><h4>Reports & Analytics</h4><p>Task, project, attendance, leave, performance reports. Export PDF/Excel/CSV.</p></div>
+    <div class="card"><h4>Global Search</h4><p>Search tasks, projects, employees, clients, files instantly.</p></div>
+    <div class="card"><h4>Settings</h4><p>Company branding, roles & permissions matrix, system config.</p></div>
+  </div>
+</div>
+
+<!-- PAGE 8: SUPER ADMIN + CLIENT -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">SaaS & Client</div><h2>Super Admin & Client Portal</h2></div><span class="page-num">08</span></div>
+  <div class="module-row">
+    <div class="module-info">
+      <h4>Super Admin Panel (SaaS)</h4>
+      <ul>
+        <li>Global dashboard & platform growth charts</li>
+        <li>Manage all companies & workspaces</li>
+        <li>User management across tenants</li>
+        <li>Subscription plans: Starter, Pro, Enterprise</li>
+        <li>Audit logs & login history</li>
+        <li>Security policies & platform branding</li>
+        <li>Module enable/disable per platform</li>
+      </ul>
+    </div>
+    ${shot(images.superAdmin, "Super Admin")}
+  </div>
+  <div class="module-row">
+    ${shot(images.client, "Client Portal")}
+    <div class="module-info">
+      <h4>Client Portal</h4>
+      <ul>
+        <li>View assigned projects & progress</li>
+        <li>Milestones & approved tasks</li>
+        <li>Download project files</li>
+        <li>Submit feedback & ratings</li>
+        <li>Create support requests</li>
+        <li>Project history & communication</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 9: TECH STACK -->
+<div class="page inner">
+  <div class="page-header"><div><div class="tag">Technical</div><h2>Technology Stack</h2></div><span class="page-num">09</span></div>
+  <h3>Frontend & Framework</h3>
+  <div style="margin-bottom:14px">
+    <span class="tech-tag">Next.js 16</span><span class="tech-tag">React 19</span><span class="tech-tag">TypeScript</span>
+    <span class="tech-tag">Tailwind CSS 4</span><span class="tech-tag">App Router</span>
+  </div>
+  <h3>Libraries & Tools</h3>
+  <div style="margin-bottom:14px">
+    <span class="tech-tag">Zustand</span><span class="tech-tag">Recharts</span><span class="tech-tag">@dnd-kit</span>
+    <span class="tech-tag">next-themes</span><span class="tech-tag">Lucide Icons</span><span class="tech-tag">date-fns</span>
+  </div>
+  <h3>Features Built-In</h3>
+  <div class="grid-2">
+    <ul>
+      <li>Fully responsive (desktop, tablet, mobile)</li>
+      <li>Dark / light mode toggle</li>
+      <li>Drag-and-drop Kanban board</li>
+      <li>Live time tracking timer</li>
+      <li>Toast notifications & modals</li>
+      <li>Form validation & status badges</li>
+    </ul>
+    <ul>
+      <li>Advanced filters & pagination</li>
+      <li>Export PDF, Excel, CSV ready</li>
+      <li>Multi-language structure ready</li>
+      <li>REST API-ready architecture</li>
+      <li>Real-time notification structure</li>
+      <li>49 pre-built pages</li>
+    </ul>
+  </div>
+  <h3>Future Scalability</h3>
+  <p>Architecture supports adding: CRM, payroll, invoicing, recruitment, Slack/GitHub integration, Google Calendar, mobile apps, employee chat, video meetings, AI task assistant.</p>
+  <div class="highlight-bar"><p><strong>Deployment:</strong> Deploy on Vercel, AWS, or any Node.js hosting. Connect to PostgreSQL/MongoDB backend. Replace mock data with REST/GraphQL APIs.</p></div>
+</div>
+
+<!-- PAGE 10: CONTACT -->
+<div class="page contact-page">
+  <div class="logo" style="width:56px;height:56px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;color:#000;margin-bottom:24px">360</div>
+  <h2>Ready to <span>Deploy</span>?</h2>
+  <p style="color:rgba(255,255,255,0.6);font-size:15px;max-width:420px;line-height:1.7">360 WorkFlow is a complete, production-ready frontend platform built by 360 Tech Solution. Ideal for software houses, IT companies, and agencies looking to launch a work management SaaS product.</p>
+  <div class="info">
+    <div><strong>Company</strong>360 Tech Solution</div>
+    <div><strong>Website</strong>www.360techsolution.com</div>
+    <div><strong>Email</strong>info@360techsolution.com</div>
+    <div><strong>Phone</strong>+92 312 0213064 | +92 310 1252415</div>
+    <div><strong>Location</strong>Malir Halt, Karachi, Sindh, Pakistan</div>
+  </div>
+  <div class="cta">Contact for Licensing & Customization</div>
+  <p style="margin-top:40px;font-size:11px;color:rgba(255,255,255,0.35)">© 2026 360 Tech Solution — All Rights Reserved</p>
+</div>
+
+</body>
+</html>`;
+}
+
+async function generatePdf(browser, html) {
+  const docsDir = path.join(ROOT, "docs");
+  fs.mkdirSync(docsDir, { recursive: true });
+  const htmlPath = path.join(docsDir, "sales-document.html");
+  fs.writeFileSync(htmlPath, html, "utf8");
+
+  const page = await browser.newPage();
+  const fileUrl = `file:///${htmlPath.replace(/\\/g, "/")}`;
+  await page.goto(fileUrl, { waitUntil: "load", timeout: 30000 });
+  await new Promise((r) => setTimeout(r, 2000));
+
+  await page.pdf({
+    path: OUT_PDF,
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: "0", right: "0", bottom: "0", left: "0" },
+  });
+  await page.close();
+}
+
+async function main() {
+  console.log("🚀 Generating 360 WorkFlow Sales PDF...\n");
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+
+    console.log("📸 Capturing screenshots...");
+    const hasImages = fs.existsSync(IMG_DIR) && fs.readdirSync(IMG_DIR).length >= 5;
+    if (!hasImages) {
+      await captureScreenshots(browser);
+    } else {
+      console.log("   Using existing screenshots in docs/images/");
+    }
+
+    console.log("\n📄 Building PDF document...");
+    const html = buildHtml();
+    await generatePdf(browser, html);
+
+    const stats = fs.statSync(OUT_PDF);
+    console.log(`\n✅ PDF created: ${OUT_PDF}`);
+    console.log(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+  } catch (e) {
+    console.error("❌ Error:", e.message);
+    process.exit(1);
+  } finally {
+    await browser?.close();
+  }
+}
+
+main();

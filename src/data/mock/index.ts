@@ -13,6 +13,8 @@ import type {
   Activity,
   Notification,
   Document,
+  ChatChannel,
+  ChatMessage,
 } from "@/types";
 
 export const currentUser: User = {
@@ -132,6 +134,32 @@ export const documents: Document[] = [
   { id: "doc3", name: "auth-flow-diagram.pdf", category: "Project Files", size: "856 KB", uploadedBy: "Ahmed Raza", uploadedAt: "2026-07-04", projectId: "p1" },
   { id: "doc4", name: "Employee Contract Template.pdf", category: "HR Documents", size: "320 KB", uploadedBy: "HR Team", uploadedAt: "2025-12-01" },
   { id: "doc5", name: "Brand Guidelines.pdf", category: "Client Files", size: "5.2 MB", uploadedBy: "Sara Khan", uploadedAt: "2026-03-10", projectId: "p3" },
+];
+
+export const chatChannels: ChatChannel[] = [
+  { id: "ch1", name: "general", type: "general", description: "Company-wide discussions", memberCount: 74, unreadCount: 2, lastMessage: "Welcome to 360 WorkFlow!", lastMessageAt: "2026-07-05T09:00:00" },
+  { id: "ch2", name: "frontend-team", type: "team", description: "Frontend Team channel", memberCount: 6, unreadCount: 3, lastMessage: "Kanban board is ready for review", lastMessageAt: "2026-07-05T10:30:00", teamId: "t1" },
+  { id: "ch3", name: "360-workflow", type: "project", description: "360 WorkFlow Platform project", memberCount: 8, unreadCount: 5, lastMessage: "@Ahmed please check the auth module", lastMessageAt: "2026-07-05T11:15:00", projectId: "p1" },
+  { id: "ch4", name: "development", type: "department", description: "Development department", memberCount: 24, unreadCount: 0, lastMessage: "Sprint planning tomorrow at 10 AM", lastMessageAt: "2026-07-04T16:00:00" },
+  { id: "ch5", name: "Ali Hassan", type: "direct", description: "Direct message", memberCount: 2, unreadCount: 1, lastMessage: "Can you review my PR?", lastMessageAt: "2026-07-05T08:45:00" },
+  { id: "ch6", name: "hr-announcements", type: "department", description: "HR updates & queries", memberCount: 74, unreadCount: 0, lastMessage: "Leave policy updated for Q3", lastMessageAt: "2026-07-03T14:00:00" },
+  { id: "ch7", name: "e-commerce-app", type: "project", description: "E-Commerce Mobile App", memberCount: 5, unreadCount: 2, lastMessage: "Payment API integration done", lastMessageAt: "2026-07-04T17:20:00", projectId: "p2" },
+];
+
+export const chatMessages: ChatMessage[] = [
+  { id: "m1", channelId: "ch3", senderId: "e1", senderName: "Ali Hassan", content: "Team, let's sync on the dashboard module today.", timestamp: "2026-07-05T09:00:00" },
+  { id: "m2", channelId: "ch3", senderId: "e2", senderName: "Ahmed Raza", content: "Sure! I've completed the login page and JWT setup.", timestamp: "2026-07-05T09:15:00" },
+  { id: "m3", channelId: "ch3", senderId: "e3", senderName: "Zainab Qureshi", content: "Task API endpoints are ready for integration.", timestamp: "2026-07-05T09:30:00" },
+  { id: "m4", channelId: "ch3", senderId: "e5", senderName: "Sara Khan", content: "Design mockups for the employee module are uploaded.", timestamp: "2026-07-05T10:00:00" },
+  { id: "m5", channelId: "ch3", senderId: "e1", senderName: "Ali Hassan", content: "@Ahmed please check the auth module before EOD.", timestamp: "2026-07-05T11:15:00", mentions: ["Ahmed Raza"] },
+  { id: "m6", channelId: "ch2", senderId: "e2", senderName: "Ahmed Raza", content: "Kanban board is ready for review 🎉", timestamp: "2026-07-05T10:30:00" },
+  { id: "m7", channelId: "ch2", senderId: "e4", senderName: "Hassan Mehmood", content: "Looks great! Drag and drop works smoothly.", timestamp: "2026-07-05T10:45:00" },
+  { id: "m8", channelId: "ch1", senderId: "u1", senderName: "Sameer Ahmed", content: "Welcome everyone to 360 WorkFlow! 🚀", timestamp: "2026-07-05T09:00:00" },
+  { id: "m9", channelId: "ch1", senderId: "e12", senderName: "Ayesha Raza", content: "HR team is here if you need any help with onboarding.", timestamp: "2026-07-05T09:30:00" },
+  { id: "m10", channelId: "ch5", senderId: "e1", senderName: "Ali Hassan", content: "Can you review my PR for the task API?", timestamp: "2026-07-05T08:45:00" },
+  { id: "m11", channelId: "ch5", senderId: "e2", senderName: "Ahmed Raza", content: "On it! Will check in 30 mins.", timestamp: "2026-07-05T08:50:00" },
+  { id: "m12", channelId: "ch4", senderId: "e1", senderName: "Ali Hassan", content: "Sprint planning tomorrow at 10 AM in meeting room.", timestamp: "2026-07-04T16:00:00" },
+  { id: "m13", channelId: "ch7", senderId: "e3", senderName: "Zainab Qureshi", content: "Payment API integration is complete. Ready for testing.", timestamp: "2026-07-04T17:20:00" },
 ];
 
 export const dashboardKPIs = {

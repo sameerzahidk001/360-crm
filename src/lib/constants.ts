@@ -69,6 +69,7 @@ export const MODULES = [
   "Attendance",
   "Leave",
   "Daily Reports",
+  "Discussions",
   "Documents",
   "Reports",
   "Settings",

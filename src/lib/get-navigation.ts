@@ -25,6 +25,7 @@ export function getNavigation(role: UserRole) {
         { label: "Attendance", href: "/attendance", icon: "Clock" },
         { label: "Leave", href: "/leave", icon: "Palmtree" },
         { label: "Time Tracking", href: "/time-tracking", icon: "Timer" },
+        { label: "Discussions", href: "/discussions", icon: "MessagesSquare" },
         { label: "Announcements", href: "/announcements", icon: "Megaphone" },
         { label: "Notifications", href: "/notifications", icon: "Bell" },
         { label: "Profile", href: "/profile", icon: "Settings" },

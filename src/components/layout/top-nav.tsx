@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   Search, Bell, Plus, Menu, Sun, Moon, User, Settings, LogOut,
-  ChevronDown, FolderOpen, CheckSquare, UserPlus, Handshake,
+  ChevronDown, FolderOpen, CheckSquare, UserPlus, Handshake, MessagesSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
+import { useChatStore } from "@/store/chat-store";
 import { Avatar } from "@/components/ui/avatar";
 import { ROLE_LABELS } from "@/lib/constants";
 import { tasks, projects, employees, clients, demoUsers } from "@/data/mock";
@@ -27,6 +28,7 @@ const pageTitles: Record<string, string> = {
   "/leave": "Leave Requests",
   "/time-tracking": "Time Tracking",
   "/notifications": "Notifications",
+  "/discussions": "Discussions",
   "/profile": "Profile",
 };
 
@@ -73,6 +75,7 @@ export function TopNav() {
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const chatUnread = useChatStore((s) => s.channels.reduce((a, c) => a + c.unreadCount, 0));
 
   const searchResults = searchQuery.length > 1 ? {
     tasks: tasks.filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 3),
@@ -200,6 +203,24 @@ export function TopNav() {
         </div>
 
         <div className="hidden sm:flex items-center gap-1 px-1.5 py-1 rounded-xl bg-white/5 border border-white/8">
+          <Link
+            href="/discussions"
+            className={cn(
+              "relative p-2 rounded-lg transition-colors",
+              pathname.startsWith("/discussions")
+                ? "text-accent-orange bg-accent-orange/15"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            )}
+            title="Discussions"
+          >
+            <MessagesSquare className="h-4 w-4" />
+            {chatUnread > 0 && (
+              <span className="absolute top-0.5 right-0.5 h-4 min-w-4 px-0.5 rounded-full bg-accent-orange text-white text-[9px] font-bold flex items-center justify-center">
+                {chatUnread}
+              </span>
+            )}
+          </Link>
+
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

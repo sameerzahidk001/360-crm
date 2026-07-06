@@ -30,6 +30,31 @@ export type LeaveType = "annual" | "sick" | "casual" | "emergency" | "unpaid" | 
 export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "leave" | "work_from_home";
 export type DailyReportStatus = "submitted" | "reviewed" | "needs_update";
 export type AnnouncementPriority = "normal" | "important" | "urgent";
+export type ChatChannelType = "team" | "project" | "department" | "direct" | "general";
+
+export interface ChatChannel {
+  id: string;
+  name: string;
+  type: ChatChannelType;
+  description?: string;
+  memberCount: number;
+  unreadCount: number;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  projectId?: string;
+  teamId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  channelId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  mentions?: string[];
+  isEdited?: boolean;
+}
 
 export interface User {
   id: string;

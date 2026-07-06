@@ -7,7 +7,7 @@ import {
   Building2, Users, Building, UsersRound, Handshake, Heart, Clock, Palmtree,
   BarChart3, FileText, TrendingUp, PieChart, FileStack, Megaphone, Bell,
   Timer, Activity, Settings, Shield, ChevronDown, ChevronLeft, Globe, Layers,
-  CreditCard, ScrollText, Lock, MessageSquare, Headphones,
+  CreditCard, ScrollText, Lock, MessageSquare, Headphones, MessagesSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
@@ -20,7 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
   Building2, Users, Building, UsersRound, Handshake, Heart, Clock, Palmtree,
   BarChart3, FileText, TrendingUp, PieChart, FileStack, Megaphone, Bell,
   Timer, Activity, Settings, Shield, Globe, Layers, CreditCard, ScrollText, Lock,
-  MessageSquare, Headphones,
+  MessageSquare, Headphones, MessagesSquare,
 };
 
 function NavIcon({ name }: { name: string }) {
