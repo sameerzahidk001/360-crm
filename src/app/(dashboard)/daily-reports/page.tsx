@@ -6,11 +6,13 @@ import { PageHeader } from "@/components/ui/kpi-card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
-import { dailyReports } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
 import { formatDate } from "@/lib/utils";
 import type { DailyReport } from "@/types";
 
 export default function DailyReportsPage() {
+  const dailyReports = useCrmDataStore((s) => s.dailyReports);
+
   const columns = [
     { key: "employeeName", header: "Employee" },
     { key: "date", header: "Date", render: (r: DailyReport) => formatDate(r.date) },

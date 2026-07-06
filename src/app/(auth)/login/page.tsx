@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Shield, User, Heart, Globe, Handshake } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Shield, User, Heart, Globe, Handshake, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/store/app-store";
@@ -19,39 +19,62 @@ const roleIcons = {
   client: Handshake,
 };
 
+function validateCredentials(email: string, password: string): string | null {
+  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedPassword = password.trim();
+
+  if (!trimmedEmail) return "Please enter your email";
+  if (!trimmedPassword) return "Please enter your password";
+
+  const account = loginAccounts.find((a) => a.email.toLowerCase() === trimmedEmail);
+  if (!account) return "No account found with this email";
+
+  if (trimmedPassword !== account.password && trimmedPassword !== "password") {
+    return "Incorrect password. Use: password";
+  }
+
+  const user = findUserByEmail(trimmedEmail);
+  if (!user) return "Account configuration error";
+
+  return null;
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const setUser = useAppStore((s) => s.setUser);
+  const login = useAppStore((s) => s.login);
   const addToast = useAppStore((s) => s.addToast);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = (loginEmail?: string, loginPassword?: string) => {
     const e = loginEmail ?? email;
     const p = loginPassword ?? password;
+    setError("");
     setLoading(true);
 
-    const user = findUserByEmail(e);
-    const account = loginAccounts.find((a) => a.email.toLowerCase() === e.trim().toLowerCase());
+    const validationError = validateCredentials(e, p);
+    if (validationError) {
+      setError(validationError);
+      addToast({ title: "Login failed", message: validationError, type: "error" });
+      setLoading(false);
+      return;
+    }
+
+    const user = findUserByEmail(e)!;
 
     setTimeout(() => {
-      if (!user || (account && p !== account.password && p !== "password")) {
-        addToast({ title: "Invalid credentials", message: "Use demo accounts below or password: password", type: "error" });
-        setLoading(false);
-        return;
-      }
-      setUser(user);
+      login(user);
       addToast({ title: `Welcome, ${user.name.split(" ")[0]}!`, type: "success" });
       router.push(getDashboardRoute(user.role));
       setLoading(false);
-    }, 500);
+    }, 400);
   };
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Left — matches 360techsolution.com black + orange */}
       <div className="hidden lg:flex lg:w-[48%] bg-black relative overflow-hidden">
         <div className="absolute inset-0 agency-pattern" />
         <div className="absolute bottom-16 left-12 h-20 w-20 rounded-full bg-accent-orange opacity-90" />
@@ -97,7 +120,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right — clean white form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-white overflow-y-auto">
         <div className="w-full max-w-lg py-8">
           <div className="lg:hidden flex items-center gap-3 mb-8">
@@ -141,12 +163,18 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
+            {error && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
             <div className="relative">
-              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+              <Input label="Email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} placeholder="you@company.com" />
               <Mail className="absolute right-3 top-[38px] h-4 w-4 text-text-secondary" />
             </div>
             <div className="relative">
-              <Input label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
+              <Input label="Password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} placeholder="password" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-[38px] text-text-secondary">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>

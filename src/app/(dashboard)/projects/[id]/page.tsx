@@ -1,22 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Calendar, Users, CheckSquare, FileText, MessageSquare } from "lucide-react";
-import { use } from "react";
+import { use, useState } from "react";
+import { ArrowLeft, Calendar, Users, CheckSquare, FileText } from "lucide-react";
 import { PageHeader } from "@/components/ui/kpi-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { Avatar, AvatarGroup } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { TaskCard } from "@/components/tasks/task-card";
 import { Button } from "@/components/ui/button";
-import { projects, tasks, employees, activities } from "@/data/mock";
+import { Modal } from "@/components/ui/modal";
+import { Input, Textarea, Select } from "@/components/ui/input";
+import { useCrmDataStore } from "@/store/crm-data-store";
+import { tasks, employees, activities } from "@/data/mock";
+import { useTaskStore } from "@/store/task-store";
+import { useAppStore } from "@/store/app-store";
 import { formatDate, formatRelative } from "@/lib/utils";
+import type { ProjectPriority, ProjectStatus } from "@/types";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const project = projects.find((p) => p.id === id);
-  const projectTasks = tasks.filter((t) => t.projectId === id);
+  const project = useCrmDataStore((s) => s.projects.find((p) => p.id === id));
+  const updateProject = useCrmDataStore((s) => s.updateProject);
+  const addToast = useAppStore((s) => s.addToast);
+  const taskList = useTaskStore((s) => s.tasks);
+  const [editOpen, setEditOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<ProjectStatus>("active");
+  const [priority, setPriority] = useState<ProjectPriority>("normal");
+  const [deadline, setDeadline] = useState("");
+
+  const projectTasks = taskList.filter((t) => t.projectId === id);
   const projectActivities = activities.filter((a) => a.target.toLowerCase().includes(project?.title.toLowerCase().split(" ")[0] || ""));
 
   if (!project) {
@@ -24,6 +40,31 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const memberNames = project.memberIds.map((mid) => employees.find((e) => e.id === mid)?.name || "").filter(Boolean);
+
+  const openEdit = () => {
+    setTitle(project.title);
+    setDescription(project.description);
+    setStatus(project.status);
+    setPriority(project.priority);
+    setDeadline(project.deadline);
+    setEditOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!title.trim()) {
+      addToast({ title: "Project title is required", type: "warning" });
+      return;
+    }
+    updateProject(id, {
+      title: title.trim(),
+      description: description.trim(),
+      status,
+      priority,
+      deadline,
+    });
+    addToast({ title: "Project updated", type: "success" });
+    setEditOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -33,14 +74,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <h1 className="text-2xl font-bold text-text-primary">{project.title}</h1>
             <StatusBadge status={project.status} />
             <PriorityBadge priority={project.priority} />
           </div>
           <p className="text-text-secondary">{project.description}</p>
         </div>
-        <Button>Edit Project</Button>
+        <Button type="button" onClick={openEdit}>Edit Project</Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -52,7 +93,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         ].map((stat) => (
           <Card key={stat.label} className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-brand-blue/10 text-brand-blue"><stat.icon className="h-5 w-5" /></div>
+              <div className="p-2 rounded-xl bg-accent-orange/10 text-accent-orange"><stat.icon className="h-5 w-5" /></div>
               <div>
                 <p className="text-xs text-text-secondary">{stat.label}</p>
                 <p className="text-lg font-bold">{stat.value}</p>
@@ -65,7 +106,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <Card className="p-5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium">Overall Progress</span>
-          <span className="text-sm font-bold text-brand-blue">{project.progress}%</span>
+          <span className="text-sm font-bold text-accent-orange">{project.progress}%</span>
         </div>
         <ProgressBar value={project.progress} size="md" />
       </Card>
@@ -123,6 +164,50 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit Project"
+        size="lg"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSave}>Save Changes</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input label="Project Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+              options={[
+                { value: "planning", label: "Planning" },
+                { value: "active", label: "Active" },
+                { value: "on_hold", label: "On Hold" },
+                { value: "in_review", label: "In Review" },
+                { value: "completed", label: "Completed" },
+              ]}
+            />
+            <Select
+              label="Priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as ProjectPriority)}
+              options={[
+                { value: "low", label: "Low" },
+                { value: "normal", label: "Normal" },
+                { value: "high", label: "High" },
+                { value: "urgent", label: "Urgent" },
+              ]}
+            />
+            <Input label="Deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

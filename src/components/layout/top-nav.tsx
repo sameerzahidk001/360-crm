@@ -34,7 +34,7 @@ const pageTitles: Record<string, string> = {
 
 export function TopNav() {
   const pathname = usePathname();
-  const { user, setUser, sidebarCollapsed, setMobileSidebarOpen, notifications, openCreateModal, markNotificationRead, markAllNotificationsRead, addToast } = useAppStore();
+  const { user, login, logout, sidebarCollapsed, setMobileSidebarOpen, notifications, openCreateModal, markNotificationRead, markAllNotificationsRead, addToast } = useAppStore();
   const { theme, setTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,7 +53,7 @@ export function TopNav() {
 
   const switchRole = (roleKey: keyof typeof demoUsers) => {
     const newUser = demoUsers[roleKey];
-    setUser(newUser);
+    login(newUser);
     setRoleOpen(false);
     setProfileOpen(false);
     addToast({ title: `Switched to ${ROLE_LABELS[newUser.role]}`, type: "info" });
@@ -202,7 +202,7 @@ export function TopNav() {
           )}
         </div>
 
-        <div className="hidden sm:flex items-center gap-1 px-1.5 py-1 rounded-xl bg-white/5 border border-white/8">
+        <div className="flex items-center gap-1 px-1.5 py-1 rounded-xl bg-white/5 border border-white/8">
           <Link
             href="/discussions"
             className={cn(
@@ -223,8 +223,9 @@ export function TopNav() {
 
           {mounted && (
             <button
+              type="button"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden sm:block p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title="Toggle theme"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -233,8 +234,10 @@ export function TopNav() {
 
           <div ref={notifRef} className="relative">
             <button
+              type="button"
               onClick={() => setNotifOpen(!notifOpen)}
               className="relative p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title="Notifications"
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
@@ -247,12 +250,15 @@ export function TopNav() {
               <div className="absolute right-0 top-full mt-2 w-80 bg-[#141414] border border-white/10 rounded-xl shadow-2xl z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                   <h3 className="font-semibold text-sm text-white">Notifications</h3>
-                  <button onClick={markAllNotificationsRead} className="text-xs text-accent-orange hover:underline">Mark all read</button>
+                  <button type="button" onClick={markAllNotificationsRead} className="text-xs text-accent-orange hover:underline">Mark all read</button>
                 </div>
                 <div className="max-h-72 overflow-y-auto">
-                  {notifications.map((n) => (
+                  {notifications.length === 0 ? (
+                    <p className="p-4 text-sm text-white/50 text-center">No notifications</p>
+                  ) : notifications.map((n) => (
                     <button
                       key={n.id}
+                      type="button"
                       onClick={() => markNotificationRead(n.id)}
                       className={cn(
                         "w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors",
@@ -330,7 +336,7 @@ export function TopNav() {
                   {item.label}
                 </Link>
               ))}
-              <Link href="/login" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 border-t border-white/8">
+              <Link href="/login" onClick={() => { logout(); setProfileOpen(false); }} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 border-t border-white/8">
                 <LogOut className="h-4 w-4" />
                 Sign Out
               </Link>

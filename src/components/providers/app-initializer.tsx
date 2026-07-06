@@ -2,16 +2,11 @@
 
 import { useEffect } from "react";
 import { useAppStore } from "@/store/app-store";
-import { notifications as mockNotifications } from "@/data/mock";
+import { ToastContainer } from "@/components/ui/toast";
 
 export function AppInitializer({ children }: { children: React.ReactNode }) {
-  const setState = useAppStore.setState;
   const toasts = useAppStore((s) => s.toasts);
   const removeToast = useAppStore((s) => s.removeToast);
-
-  useEffect(() => {
-    setState({ notifications: mockNotifications });
-  }, [setState]);
 
   useEffect(() => {
     if (toasts.length === 0) return;
@@ -20,5 +15,10 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [toasts, removeToast]);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <ToastContainer />
+    </>
+  );
 }

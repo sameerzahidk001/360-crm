@@ -9,11 +9,13 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { AvatarGroup } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { useAppStore } from "@/store/app-store";
-import { projects, employees } from "@/data/mock";
+import { useCrmDataStore } from "@/store/crm-data-store";
+import { employees } from "@/data/mock";
 import { formatDate } from "@/lib/utils";
 
 export default function ProjectsPage() {
   const openCreateModal = useAppStore((s) => s.openCreateModal);
+  const projects = useCrmDataStore((s) => s.projects);
 
   return (
     <div className="space-y-6">

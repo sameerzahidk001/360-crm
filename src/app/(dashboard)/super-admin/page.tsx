@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Building2, Users, Layers, Activity } from "lucide-react";
 import Link from "next/link";
 import { PageHeader, KPICard } from "@/components/ui/kpi-card";
@@ -7,12 +8,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { platformCompanies, auditLogs, subscriptionPlans } from "@/data/mock";
+import { Modal } from "@/components/ui/modal";
+import { Input, Select } from "@/components/ui/input";
+import { useCrmDataStore } from "@/store/crm-data-store";
+import { useAppStore } from "@/store/app-store";
+import { auditLogs, subscriptionPlans } from "@/data/mock";
 import { formatRelative } from "@/lib/utils";
 import { TaskCompletionChart } from "@/components/charts/dashboard-charts";
 import { chartData } from "@/data/mock";
 
 export default function SuperAdminDashboardPage() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [plan, setPlan] = useState("Starter");
+  const platformCompanies = useCrmDataStore((s) => s.platformCompanies);
+  const addCompany = useCrmDataStore((s) => s.addCompany);
+  const addToast = useAppStore((s) => s.addToast);
+
   const companyColumns = [
     { key: "name", header: "Company", render: (c: typeof platformCompanies[0]) => <span className="font-medium">{c.name}</span> },
     { key: "plan", header: "Plan", render: (c: typeof platformCompanies[0]) => <span className="capitalize">{c.plan}</span> },
@@ -21,12 +33,33 @@ export default function SuperAdminDashboardPage() {
     { key: "status", header: "Status", render: (c: typeof platformCompanies[0]) => <StatusBadge status={c.status === "trial" ? "on_hold" : c.status === "inactive" ? "cancelled" : "active"} /> },
   ];
 
+  const handleAdd = () => {
+    if (!name.trim()) {
+      addToast({ title: "Company name is required", type: "warning" });
+      return;
+    }
+    addCompany({
+      name: name.trim(),
+      plan,
+      users: 0,
+      workspaces: 1,
+      status: "trial",
+      createdAt: new Date().toISOString().split("T")[0],
+    });
+    addToast({ title: "Company added", type: "success" });
+    setName("");
+    setPlan("Starter");
+    setModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Global Dashboard"
         description="Platform overview and usage statistics"
-        actions={<Button size="sm" className="gradient-sidebar-active border-0">Add Company</Button>}
+        actions={
+          <Button type="button" size="sm" onClick={() => setModalOpen(true)}>Add Company</Button>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -44,14 +77,14 @@ export default function SuperAdminDashboardPage() {
         <Card>
           <CardHeader><CardTitle>Subscription Plans</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {subscriptionPlans.map((plan) => (
-              <div key={plan.id} className="p-3 rounded-xl bg-bg-main flex items-center justify-between">
+            {subscriptionPlans.map((p) => (
+              <div key={p.id} className="p-3 rounded-xl bg-bg-main flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm">{plan.name}</p>
-                  <p className="text-xs text-text-secondary">{plan.companies} companies</p>
+                  <p className="font-medium text-sm">{p.name}</p>
+                  <p className="text-xs text-text-secondary">{p.companies} companies</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-brand-blue">${plan.price}</p>
+                  <p className="font-bold text-accent-orange">${p.price}</p>
                   <p className="text-[10px] text-text-secondary">/month</p>
                 </div>
               </div>
@@ -86,6 +119,32 @@ export default function SuperAdminDashboardPage() {
           <Link href="/super-admin/audit"><Button variant="outline" size="sm">View all logs</Button></Link>
         </CardContent>
       </Card>
+
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Add Company"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleAdd}>Add Company</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input label="Company Name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Select
+            label="Plan"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+            options={[
+              { value: "Starter", label: "Starter" },
+              { value: "Professional", label: "Professional" },
+              { value: "Enterprise", label: "Enterprise" },
+            ]}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
